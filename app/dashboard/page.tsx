@@ -3,8 +3,7 @@ import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
 import SummaryCard from '@/components/SummaryCard'
 import ExpenseList from '@/components/ExpenseList'
-import ExpensePieChart from '@/components/ExpensePieChart'
-import MonthlyBarChart from '@/components/MonthlyBarChart'
+import DashboardCharts from '@/components/DashboardCharts'
 import type { MonthlyData } from '@/components/MonthlyBarChart'
 import { Expense } from '@/types'
 
@@ -87,14 +86,19 @@ export default async function DashboardPage() {
     0
   )
 
-  // 今月の送金額
-  const { data: remittance } = await supabase
+  // 今月の送金額（RLSをバイパスして確実に取得）
+  const serviceSupabase = createServiceRoleSupabaseClient()
+  const { data: remittanceRows } = await serviceSupabase
     .from('remittances')
     .select('remittance_amount')
     .eq('owner_id', owner.id)
     .eq('year', year)
     .eq('month', month)
-    .single()
+
+  const monthlyRemittance = (remittanceRows ?? []).reduce(
+    (sum, r) => sum + (r.remittance_amount ?? 0),
+    0
+  )
 
   // 入居率（全部屋中occupiedの割合）
   const { data: allRooms } = await supabase
@@ -127,7 +131,7 @@ export default async function DashboardPage() {
         .in('property_id', propertyIds.length > 0 ? propertyIds : [''])
         .gte('year', minYear)
         .lte('year', maxYear),
-      supabase
+      serviceSupabase
         .from('remittances')
         .select('remittance_amount, year, month')
         .eq('owner_id', owner.id)
@@ -168,7 +172,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <SummaryCard
             title="今月の収入"
-            amount={remittance?.remittance_amount ?? 0}
+            amount={monthlyRemittance}
             unit="円"
             icon="💰"
             color="blue"
@@ -182,7 +186,7 @@ export default async function DashboardPage() {
           />
           <SummaryCard
             title="送金額"
-            amount={remittance?.remittance_amount ?? 0}
+            amount={monthlyRemittance}
             unit="円"
             icon="🏦"
             color="green"
@@ -196,11 +200,11 @@ export default async function DashboardPage() {
           />
         </div>
 
-        {/* 支出内訳 円グラフ */}
-        <ExpensePieChart expenses={(expenses ?? []) as Expense[]} />
-
-        {/* 月次推移 棒グラフ */}
-        <MonthlyBarChart data={monthlyData} />
+        {/* グラフ（CSR：SSRなし） */}
+        <DashboardCharts
+          expenses={(expenses ?? []) as Expense[]}
+          monthlyData={monthlyData}
+        />
 
         {/* 今月の支出一覧 */}
         <section>
