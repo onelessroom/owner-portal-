@@ -7,12 +7,11 @@ import { createClient } from '@/lib/supabase'
 import { Property, Room, ExpenseCategory } from '@/types'
 
 const CATEGORIES: ExpenseCategory[] = [
-  '管理料',
   '修繕費',
-  'クリーニング費',
-  '広告料',
-  '仲介手数料',
-  '設備交換費',
+  '清掃費',
+  '保険料',
+  '租税公課',
+  '管理料',
   'その他',
 ]
 
@@ -29,7 +28,7 @@ export default function AdminExpensesPage() {
     room_id: '',
     year: new Date().getFullYear(),
     month: new Date().getMonth() + 1,
-    category: '管理料' as ExpenseCategory,
+    category: '修繕費' as ExpenseCategory,
     amount: '',
     description: '',
     expense_date: new Date().toISOString().split('T')[0],
@@ -158,7 +157,7 @@ export default function AdminExpensesPage() {
         room_id: '',
         year: new Date().getFullYear(),
         month: new Date().getMonth() + 1,
-        category: '管理料',
+        category: '修繕費',
         amount: '',
         description: '',
         expense_date: new Date().toISOString().split('T')[0],

@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
 import SummaryCard from '@/components/SummaryCard'
 import ExpenseList from '@/components/ExpenseList'
+import ExpensePieChart from '@/components/ExpensePieChart'
+import MonthlyBarChart from '@/components/MonthlyBarChart'
+import type { MonthlyData } from '@/components/MonthlyBarChart'
 import { Expense } from '@/types'
 
 export default async function DashboardPage() {
@@ -27,11 +30,29 @@ export default async function DashboardPage() {
   const month = now.getMonth() + 1
 
   // オーナー情報を取得
-  const { data: owner } = await supabase
+  let { data: owner } = await supabase
     .from('owners')
     .select('id, name')
     .eq('user_id', user.id)
     .single()
+
+  // user_id 未紐づけの場合は email で照合して自動リンク
+  if (!owner && user.email) {
+    const serviceSupabase = createServiceRoleSupabaseClient()
+    const { data: ownerByEmail } = await serviceSupabase
+      .from('owners')
+      .select('id, name')
+      .eq('email', user.email)
+      .single()
+
+    if (ownerByEmail) {
+      await serviceSupabase
+        .from('owners')
+        .update({ user_id: user.id })
+        .eq('id', ownerByEmail.id)
+      owner = ownerByEmail
+    }
+  }
 
   if (!owner) {
     return (
@@ -66,7 +87,7 @@ export default async function DashboardPage() {
     })
     .reduce((sum, p) => sum + (p.amount ?? 0), 0)
 
-  // 今月の支出合計
+  // 今月の支出
   const { data: expenses } = await supabase
     .from('expenses')
     .select('*')
@@ -101,6 +122,57 @@ export default async function DashboardPage() {
   ).length
   const occupancyRate =
     totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0
+
+  // ---- 過去6ヶ月分のデータ（棒グラフ用） ----
+  const months6: { year: number; month: number }[] = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(year, month - 1 - i, 1)
+    months6.push({ year: d.getFullYear(), month: d.getMonth() + 1 })
+  }
+
+  const minYear = months6[0].year
+  const maxYear = months6[months6.length - 1].year
+
+  const [{ data: hist_payments }, { data: hist_expenses }, { data: hist_remittances }] =
+    await Promise.all([
+      supabase
+        .from('rent_payments')
+        .select('amount, year, month, rooms(property_id)')
+        .gte('year', minYear)
+        .lte('year', maxYear),
+      supabase
+        .from('expenses')
+        .select('amount, year, month')
+        .in('property_id', propertyIds.length > 0 ? propertyIds : [''])
+        .gte('year', minYear)
+        .lte('year', maxYear),
+      supabase
+        .from('remittances')
+        .select('remittance_amount, year, month')
+        .eq('owner_id', owner.id)
+        .gte('year', minYear)
+        .lte('year', maxYear),
+    ])
+
+  const monthlyData: MonthlyData[] = months6.map(({ year: y, month: m }) => {
+    const income = (hist_payments ?? [])
+      .filter((p) => {
+        if (p.year !== y || p.month !== m) return false
+        const room = p.rooms as unknown as { property_id: string } | null
+        return room && propertyIds.includes(room.property_id)
+      })
+      .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+
+    const expense = (hist_expenses ?? [])
+      .filter((e) => e.year === y && e.month === m)
+      .reduce((sum, e) => sum + (e.amount ?? 0), 0)
+
+    const rem = (hist_remittances ?? [])
+      .filter((r) => r.year === y && r.month === m)
+      .reduce((sum, r) => sum + (r.remittance_amount ?? 0), 0)
+
+    return { label: `${m}月`, income, expense, remittance: rem }
+  })
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,6 +222,12 @@ export default async function DashboardPage() {
             color="orange"
           />
         </div>
+
+        {/* 支出内訳 円グラフ */}
+        <ExpensePieChart expenses={(expenses ?? []) as Expense[]} />
+
+        {/* 月次推移 棒グラフ */}
+        <MonthlyBarChart data={monthlyData} />
 
         {/* 今月の支出一覧 */}
         <section>

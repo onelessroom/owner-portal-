@@ -59,12 +59,11 @@ export interface RentPayment {
 }
 
 export type ExpenseCategory =
-  | '管理料'
   | '修繕費'
-  | 'クリーニング費'
-  | '広告料'
-  | '仲介手数料'
-  | '設備交換費'
+  | '清掃費'
+  | '保険料'
+  | '租税公課'
+  | '管理料'
   | 'その他'
 
 export interface Expense {
