@@ -86,17 +86,22 @@ export default async function DashboardPage() {
     0
   )
 
-  // 今月の送金額（RLSをバイパスして確実に取得）
+  // 今月の送金額（RLSをバイパス、カラム名の違いにも対応）
   const serviceSupabase = createServiceRoleSupabaseClient()
   const { data: remittanceRows } = await serviceSupabase
     .from('remittances')
-    .select('remittance_amount')
+    .select('*')
     .eq('owner_id', owner.id)
     .eq('year', year)
     .eq('month', month)
 
+  const getRemittanceAmount = (r: Record<string, unknown>) =>
+    typeof r.remittance_amount === 'number' ? r.remittance_amount
+    : typeof r.amount === 'number' ? r.amount
+    : 0
+
   const monthlyRemittance = (remittanceRows ?? []).reduce(
-    (sum, r) => sum + (r.remittance_amount ?? 0),
+    (sum, r) => sum + getRemittanceAmount(r as Record<string, unknown>),
     0
   )
 
@@ -133,7 +138,7 @@ export default async function DashboardPage() {
         .lte('year', maxYear),
       serviceSupabase
         .from('remittances')
-        .select('remittance_amount, year, month')
+        .select('*')
         .eq('owner_id', owner.id)
         .gte('year', minYear)
         .lte('year', maxYear),
@@ -141,8 +146,8 @@ export default async function DashboardPage() {
 
   const monthlyData: MonthlyData[] = months6.map(({ year: y, month: m }) => {
     const income = (hist_remittances ?? [])
-      .filter((r) => r.year === y && r.month === m)
-      .reduce((sum, r) => sum + (r.remittance_amount ?? 0), 0)
+      .filter((r) => (r as Record<string, unknown>).year === y && (r as Record<string, unknown>).month === m)
+      .reduce((sum, r) => sum + getRemittanceAmount(r as Record<string, unknown>), 0)
 
     const expense = (hist_expenses ?? [])
       .filter((e) => e.year === y && e.month === m)

@@ -1,11 +1,9 @@
 'use client'
 
-import dynamic from 'next/dynamic'
+import ExpensePieChart from './ExpensePieChart'
+import MonthlyBarChart from './MonthlyBarChart'
 import type { Expense } from '@/types'
 import type { MonthlyData } from './MonthlyBarChart'
-
-const ExpensePieChart = dynamic(() => import('./ExpensePieChart'), { ssr: false })
-const MonthlyBarChart = dynamic(() => import('./MonthlyBarChart'), { ssr: false })
 
 interface Props {
   expenses: Expense[]

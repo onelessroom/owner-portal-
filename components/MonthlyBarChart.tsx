@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   BarChart,
   Bar,
@@ -14,7 +15,7 @@ export interface MonthlyData {
   label: string
   income: number
   expense: number
-  remittance: number  // unused; kept for type compatibility
+  remittance: number
 }
 
 interface Props {
@@ -25,6 +26,18 @@ const fmt = (v: number | string | undefined) =>
   typeof v === 'number' ? `¥${v.toLocaleString()}` : ''
 
 export default function MonthlyBarChart({ data }: Props) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
+  if (!mounted) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <h2 className="font-semibold text-gray-900 mb-3">月次推移（過去6ヶ月）</h2>
+        <div className="h-[240px] bg-gray-100 rounded-lg animate-pulse" />
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4">
       <h2 className="font-semibold text-gray-900 mb-3">月次推移（過去6ヶ月）</h2>

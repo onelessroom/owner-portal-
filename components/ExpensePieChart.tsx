@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Expense } from '@/types'
 
@@ -19,6 +20,9 @@ interface Props {
 }
 
 export default function ExpensePieChart({ expenses }: Props) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const totals: Record<string, number> = {}
   for (const e of expenses) {
     totals[e.category] = (totals[e.category] ?? 0) + e.amount
@@ -27,6 +31,15 @@ export default function ExpensePieChart({ expenses }: Props) {
   const data = Object.entries(totals)
     .filter(([, amount]) => amount > 0)
     .map(([name, value]) => ({ name, value }))
+
+  if (!mounted) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-4">
+        <h2 className="font-semibold text-gray-900 mb-3">支出内訳（当月）</h2>
+        <div className="h-[240px] bg-gray-100 rounded-lg animate-pulse" />
+      </div>
+    )
+  }
 
   if (data.length === 0) {
     return (
