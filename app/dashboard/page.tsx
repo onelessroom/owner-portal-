@@ -73,20 +73,6 @@ export default async function DashboardPage() {
 
   const propertyIds = (properties ?? []).map((p) => p.id)
 
-  // 今月の家賃入金合計
-  const { data: payments } = await supabase
-    .from('rent_payments')
-    .select('amount, room_id, rooms(property_id)')
-    .eq('year', year)
-    .eq('month', month)
-
-  const monthlyIncome = (payments ?? [])
-    .filter((p) => {
-      const room = p.rooms as unknown as { property_id: string } | null
-      return room && propertyIds.includes(room.property_id)
-    })
-    .reduce((sum, p) => sum + (p.amount ?? 0), 0)
-
   // 今月の支出
   const { data: expenses } = await supabase
     .from('expenses')
@@ -133,13 +119,8 @@ export default async function DashboardPage() {
   const minYear = months6[0].year
   const maxYear = months6[months6.length - 1].year
 
-  const [{ data: hist_payments }, { data: hist_expenses }, { data: hist_remittances }] =
+  const [{ data: hist_expenses }, { data: hist_remittances }] =
     await Promise.all([
-      supabase
-        .from('rent_payments')
-        .select('amount, year, month, rooms(property_id)')
-        .gte('year', minYear)
-        .lte('year', maxYear),
       supabase
         .from('expenses')
         .select('amount, year, month')
@@ -155,23 +136,15 @@ export default async function DashboardPage() {
     ])
 
   const monthlyData: MonthlyData[] = months6.map(({ year: y, month: m }) => {
-    const income = (hist_payments ?? [])
-      .filter((p) => {
-        if (p.year !== y || p.month !== m) return false
-        const room = p.rooms as unknown as { property_id: string } | null
-        return room && propertyIds.includes(room.property_id)
-      })
-      .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+    const income = (hist_remittances ?? [])
+      .filter((r) => r.year === y && r.month === m)
+      .reduce((sum, r) => sum + (r.remittance_amount ?? 0), 0)
 
     const expense = (hist_expenses ?? [])
       .filter((e) => e.year === y && e.month === m)
       .reduce((sum, e) => sum + (e.amount ?? 0), 0)
 
-    const rem = (hist_remittances ?? [])
-      .filter((r) => r.year === y && r.month === m)
-      .reduce((sum, r) => sum + (r.remittance_amount ?? 0), 0)
-
-    return { label: `${m}月`, income, expense, remittance: rem }
+    return { label: `${m}月`, income, expense, remittance: 0 }
   })
 
   return (
@@ -195,7 +168,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-2 gap-3">
           <SummaryCard
             title="今月の収入"
-            amount={monthlyIncome}
+            amount={remittance?.remittance_amount ?? 0}
             unit="円"
             icon="💰"
             color="blue"

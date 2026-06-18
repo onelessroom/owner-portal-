@@ -14,7 +14,7 @@ export interface MonthlyData {
   label: string
   income: number
   expense: number
-  remittance: number
+  remittance: number  // unused; kept for type compatibility
 }
 
 interface Props {
@@ -42,13 +42,12 @@ export default function MonthlyBarChart({ data }: Props) {
           <Legend
             formatter={(value) => (
               <span className="text-xs text-gray-700">
-                {value === 'income' ? '収入' : value === 'expense' ? '支出' : '送金額'}
+                {value === 'income' ? '収入（送金額）' : '支出'}
               </span>
             )}
           />
           <Bar dataKey="income" name="income" fill="#3b82f6" radius={[3, 3, 0, 0]} />
           <Bar dataKey="expense" name="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="remittance" name="remittance" fill="#22c55e" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
