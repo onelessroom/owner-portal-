@@ -1,5 +1,14 @@
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
+
+// RLS をバイパスするサービスロールクライアント（サーバーサイド専用）
+export function createServiceRoleSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // サーバーコンポーネント用Supabaseクライアント
 export async function createServerSupabaseClient() {

@@ -88,21 +88,21 @@ export default function AdminExpensesPage() {
   }, [form.property_id])
 
   const uploadFile = async (
-    supabase: ReturnType<typeof createClient>,
     file: File,
     bucket: string,
     folder: string
   ): Promise<string> => {
-    const ext = file.name.split('.').pop()
-    const path = `${folder}/${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from(bucket).upload(path, file)
-    if (error) throw error
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('bucket', bucket)
+    formData.append('folder', folder)
 
-    // 署名付きURL（1年有効）を発行
-    const { data: signed } = await supabase.storage
-      .from(bucket)
-      .createSignedUrl(path, 60 * 60 * 24 * 365)
-    return signed?.signedUrl ?? ''
+    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    const json = await res.json()
+    if (!res.ok) {
+      throw new Error(json.error ?? `アップロードエラー (HTTP ${res.status})`)
+    }
+    return json.url as string
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -121,16 +121,16 @@ export default function AdminExpensesPage() {
       let estimate_url: string | null = null
       const photo_urls: string[] = []
 
-      // ファイルアップロード
+      // ファイルアップロード（サービスロール経由 API Route を使用）
       if (receiptFile) {
-        receipt_url = await uploadFile(supabase, receiptFile, 'receipts', 'receipts')
+        receipt_url = await uploadFile(receiptFile, 'receipts', 'receipts')
       }
       if (estimateFile) {
-        estimate_url = await uploadFile(supabase, estimateFile, 'receipts', 'estimates')
+        estimate_url = await uploadFile(estimateFile, 'receipts', 'estimates')
       }
       if (photoFiles) {
         for (const file of Array.from(photoFiles)) {
-          const url = await uploadFile(supabase, file, 'photos', 'repairs')
+          const url = await uploadFile(file, 'photos', 'repairs')
           photo_urls.push(url)
         }
       }
@@ -166,8 +166,9 @@ export default function AdminExpensesPage() {
       setEstimateFile(null)
       setPhotoFiles(null)
     } catch (err) {
-      setError('登録に失敗しました。再度お試しください。')
-      console.error(err)
+      const message = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error('支出登録エラー:', err)
+      setError(`登録に失敗しました: ${message}`)
     } finally {
       setSubmitting(false)
     }
