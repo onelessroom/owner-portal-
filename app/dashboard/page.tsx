@@ -273,11 +273,14 @@ export default async function DashboardPage() {
             </Link>
 
             {/* 入居率 */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+            <Link href="/occupancy" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px] active:bg-green-50 transition-colors">
               <p className="text-sm font-bold text-gray-800">入居率</p>
               <p className="text-2xl font-bold text-green-600 mt-3 leading-tight">{occupancy}%</p>
-              <p className="text-xs text-gray-500 mt-2">{occupied}/{totalRooms} 室入居中</p>
-            </div>
+              <div className="flex items-end justify-between mt-2">
+                <p className="text-xs text-gray-500">{occupied}/{totalRooms} 室入居中</p>
+                <p className="text-xs text-green-500">内訳を見る →</p>
+              </div>
+            </Link>
 
             {/* 修繕件数 */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
