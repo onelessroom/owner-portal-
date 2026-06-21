@@ -296,6 +296,20 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        {/* 月次レポート */}
+        <Link
+          href={`/report?year=${year}&month=${month}`}
+          className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3.5 flex items-center justify-between active:bg-blue-100 transition-colors"
+        >
+          <div>
+            <p className="text-sm font-bold text-blue-900">{year}年{month}月のレポートを見る</p>
+            <p className="text-xs text-blue-600 mt-0.5">収支の流れを文章でわかりやすく</p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-blue-400 shrink-0 ml-3">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </Link>
+
         {/* グラフ（recharts, CSR） */}
         <DashboardCharts
           expenses={(expRows ?? []) as Expense[]}
