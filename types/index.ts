@@ -21,6 +21,7 @@ export interface Property {
   name: string
   address: string | null
   total_units: number
+  acquisition_price?: number | null
   created_at: string
 }
 

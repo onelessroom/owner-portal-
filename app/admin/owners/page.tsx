@@ -24,7 +24,10 @@ export default function AdminOwnersPage() {
     name: '',
     address: '',
     total_units: '1',
+    acquisition_price: '',
   })
+  const [editingPropId, setEditingPropId] = useState<string | null>(null)
+  const [editingPrice, setEditingPrice] = useState('')
   const [roomForm, setRoomForm] = useState({
     property_id: '',
     room_number: '',
@@ -105,13 +108,35 @@ export default function AdminOwnersPage() {
       name: propertyForm.name,
       address: propertyForm.address || null,
       total_units: parseInt(propertyForm.total_units, 10),
+      acquisition_price: propertyForm.acquisition_price
+        ? parseInt(propertyForm.acquisition_price, 10)
+        : null,
     })
 
     if (error) {
       setError('登録に失敗しました：' + error.message)
     } else {
       setSuccess('物件を登録しました')
-      setPropertyForm({ owner_id: '', name: '', address: '', total_units: '1' })
+      setPropertyForm({ owner_id: '', name: '', address: '', total_units: '1', acquisition_price: '' })
+      await refreshData()
+    }
+    setSubmitting(false)
+  }
+
+  const handlePriceUpdate = async (propertyId: string) => {
+    setSubmitting(true)
+    setError(null)
+    const supabase = createClient()
+    const price = editingPrice ? parseInt(editingPrice, 10) : null
+    const { error } = await supabase.from('properties')
+      .update({ acquisition_price: price })
+      .eq('id', propertyId)
+    if (error) {
+      setError('更新に失敗しました：' + error.message)
+    } else {
+      setSuccess('取得価格を更新しました')
+      setEditingPropId(null)
+      setEditingPrice('')
       await refreshData()
     }
     setSubmitting(false)
@@ -326,6 +351,20 @@ export default function AdminOwnersPage() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">取得価格（円）</label>
+                <input
+                  type="number"
+                  value={propertyForm.acquisition_price}
+                  onChange={(e) =>
+                    setPropertyForm({ ...propertyForm, acquisition_price: e.target.value })
+                  }
+                  placeholder="120000000"
+                  min={0}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">利回り計算に使います（任意）</p>
+              </div>
             </div>
 
             <button
@@ -340,21 +379,62 @@ export default function AdminOwnersPage() {
             {properties.length > 0 && (
               <div className="mt-6">
                 <h2 className="text-sm font-medium text-gray-500 mb-2">
-                  登録済み物件
+                  登録済み物件（取得価格の設定）
                 </h2>
                 <div className="space-y-2">
                   {properties.map((p) => (
                     <div
                       key={p.id}
-                      className="bg-white border border-gray-200 rounded-lg px-4 py-2.5"
+                      className="bg-white border border-gray-200 rounded-lg px-4 py-3"
                     >
-                      <p className="font-medium text-gray-900 text-sm">
-                        {p.name}
-                      </p>
+                      <p className="font-medium text-gray-900 text-sm">{p.name}</p>
                       {p.address && (
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {p.address}
-                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{p.address}</p>
+                      )}
+                      {editingPropId === p.id ? (
+                        <div className="mt-2 flex gap-2">
+                          <input
+                            type="number"
+                            value={editingPrice}
+                            onChange={(e) => setEditingPrice(e.target.value)}
+                            placeholder="120000000"
+                            min={0}
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handlePriceUpdate(p.id)}
+                            disabled={submitting}
+                            className="bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            保存
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingPropId(null); setEditingPrice('') }}
+                            className="text-gray-500 text-sm px-3 py-1.5 rounded-lg hover:bg-gray-100"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mt-1.5 flex items-center justify-between">
+                          <span className="text-xs text-gray-500">
+                            取得価格：{p.acquisition_price != null
+                              ? `¥${p.acquisition_price.toLocaleString('ja-JP')}`
+                              : '未登録'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingPropId(p.id)
+                              setEditingPrice(p.acquisition_price != null ? String(p.acquisition_price) : '')
+                            }}
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            {p.acquisition_price != null ? '変更' : '設定する'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   ))}
