@@ -2,8 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
 
-// ─── 金額を和風表記に変換 ────────────────────────────────────────────────────
-// 例: 1791000 → "179万1,000円", 467000 → "46万7,000円", 8500 → "8,500円"
 function formatJpn(n: number): string {
   if (n === 0) return '0円'
   const man = Math.floor(n / 10000)
@@ -13,44 +11,6 @@ function formatJpn(n: number): string {
   return `${man}万${rem.toLocaleString('ja-JP')}円`
 }
 
-// ─── レポート文章生成 ─────────────────────────────────────────────────────────
-function generateReport(p: {
-  remittance: number
-  prevRemittance: number | null
-  topExpenses: Array<{ description: string | null; category: string; amount: number }>
-  hasRepairExpenses: boolean
-}): string[] {
-  const lines: string[] = []
-
-  lines.push(`今月の送金額は${formatJpn(p.remittance)}でした。`)
-
-  if (p.prevRemittance !== null) {
-    const diff = p.remittance - p.prevRemittance
-    if (diff === 0) {
-      lines.push('先月と同額でした。')
-    } else {
-      lines.push(
-        `先月より${formatJpn(Math.abs(diff))}${diff > 0 ? '増えました' : '減りました'}。`
-      )
-    }
-  }
-
-  if (p.topExpenses.length > 0) {
-    const expStr = p.topExpenses
-      .map(e => `${e.description || e.category}（${formatJpn(e.amount)}）`)
-      .join('、')
-    lines.push(`主な費用は${expStr}などです。`)
-    if (!p.hasRepairExpenses) {
-      lines.push('今月は大きな修繕はありませんでした。')
-    }
-  } else {
-    lines.push('今月は大きな費用はありませんでした。')
-  }
-
-  return lines
-}
-
-// ─── ページ ──────────────────────────────────────────────────────────────────
 export default async function ReportPage({
   searchParams,
 }: {
@@ -126,11 +86,9 @@ export default async function ReportPage({
   const income = remittance !== null ? remittance + totalExpense : null
   const topExpenses = expenses.slice(0, 2)
   const hasRepairExpenses = expenses.some(e => e.category === '修繕費')
-
-  const reportLines =
-    remittance !== null
-      ? generateReport({ remittance, prevRemittance, topExpenses, hasRepairExpenses })
-      : ['この月の送金データはまだありません。']
+  const remittanceDiff = remittance !== null && prevRemittance !== null
+    ? remittance - prevRemittance
+    : null
 
   const chevronRight = (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
@@ -187,36 +145,85 @@ export default async function ReportPage({
           )}
         </div>
 
-        {/* メイン文章カード */}
+        {/* ── メイン文章カード ─────────────────────────────── */}
         <div className="bg-white rounded-2xl px-6 py-6 border border-gray-100 shadow-sm">
-          <p className="text-xs font-semibold text-gray-400 mb-4 tracking-wider">
+          <p className="text-xs font-semibold text-gray-400 mb-5 tracking-wider">
             {year}年{month}月のレポート
           </p>
-          <div className="space-y-4">
-            {reportLines.map((line, i) => (
-              <p
-                key={i}
-                className={
-                  i === 0
-                    ? 'text-xl font-bold text-gray-900 leading-relaxed'
-                    : 'text-base text-gray-700 leading-relaxed'
-                }
-              >
-                {line}
+
+          {remittance === null ? (
+            <p className="text-base text-gray-500 leading-relaxed">
+              この月の送金データはまだありません。
+            </p>
+          ) : (
+            <div className="space-y-5">
+
+              {/* 送金額（青色で金額を強調） */}
+              <p className="text-xl font-bold text-gray-900 leading-relaxed">
+                今月の送金額は{' '}
+                <span className="text-blue-600">{formatJpn(remittance)}</span>
+                {' '}でした。
               </p>
-            ))}
-          </div>
+
+              {/* 前月比（色なし・中立） */}
+              {remittanceDiff !== null && (
+                <p className="text-base text-gray-700 leading-relaxed">
+                  {remittanceDiff === 0
+                    ? '先月と同額でした。'
+                    : `先月より${formatJpn(Math.abs(remittanceDiff))}${remittanceDiff > 0 ? '増えました' : '減りました'}。`
+                  }
+                </p>
+              )}
+
+              {/* 費用（箇条書き） */}
+              {topExpenses.length > 0 ? (
+                <div>
+                  <p className="text-base text-gray-700 font-medium mb-2">主な費用：</p>
+                  <div className="space-y-2">
+                    {topExpenses.map((e, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-base text-gray-700">
+                        <span className="shrink-0 text-gray-400 mt-0.5">・</span>
+                        <span className="flex-1 leading-snug">{e.description || e.category}</span>
+                        <span className="tabular-nums shrink-0 ml-2 font-semibold text-gray-900">
+                          {formatJpn(e.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {!hasRepairExpenses && (
+                    <p className="text-base text-gray-600 mt-4 leading-relaxed">
+                      今月は大きな修繕はありませんでした。
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-base text-gray-700 leading-relaxed">
+                  今月は大きな費用はありませんでした。
+                </p>
+              )}
+
+            </div>
+          )}
         </div>
 
-        {/* 内訳カード */}
+        {/* ── 内訳カード（送金額が主役・青背景） ─────────────── */}
         {remittance !== null && (
-          <div className="bg-white rounded-2xl px-5 py-5 border border-gray-100 shadow-sm">
-            <p className="text-xs font-semibold text-gray-400 mb-4 tracking-wider">内訳</p>
-            <div className="space-y-3">
+          <div className="rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+
+            {/* 送金額：主役・塗りつぶし青 */}
+            <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
+              <span className="text-sm font-bold text-white/80">送金額</span>
+              <span className="text-2xl font-bold text-white tabular-nums">
+                {formatJpn(remittance)}
+              </span>
+            </div>
+
+            {/* 家賃収入・支出 */}
+            <div className="bg-white px-5 py-4 space-y-3">
               {income !== null && (
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-gray-600">家賃収入</span>
-                  <span className="text-base font-semibold text-gray-900 tabular-nums">
+                  <span className="text-base font-semibold text-blue-600 tabular-nums">
                     {formatJpn(income)}
                   </span>
                 </div>
@@ -227,17 +234,11 @@ export default async function ReportPage({
                   − {formatJpn(totalExpense)}
                 </span>
               </div>
-              <div className="border-t border-gray-100 pt-3 flex items-baseline justify-between">
-                <span className="text-sm font-bold text-gray-700">送金額</span>
-                <span className="text-xl font-bold text-green-700 tabular-nums">
-                  {formatJpn(remittance)}
-                </span>
-              </div>
             </div>
           </div>
         )}
 
-        {/* 関連ページへの導線 */}
+        {/* ── 関連ページへの導線 ──────────────────────────────── */}
         <div>
           <p className="text-xs font-semibold text-gray-400 mb-2 px-1 tracking-wider">関連ページ</p>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
