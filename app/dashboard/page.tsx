@@ -219,11 +219,11 @@ export default async function DashboardPage() {
               </svg>
               <span>{month}月25日（{getDow(year, month, 25)}）振込予定</span>
             </div>
-            <div className="mt-2.5 bg-white bg-opacity-15 rounded-xl px-3 py-2 text-xs">
-              <span className="opacity-70 font-medium">内訳：</span>
-              <span className="font-medium">家賃収入 ¥{monthlyIncome.toLocaleString('ja-JP')}</span>
+            <div className="mt-2.5 bg-white/15 rounded-xl px-3 py-2 text-xs text-white">
+              <span className="opacity-70">内訳：</span>
+              <span>家賃収入 ¥{monthlyIncome.toLocaleString('ja-JP')}</span>
               <span className="opacity-70"> − 支出 </span>
-              <span className="font-medium">¥{monthlyExpense.toLocaleString('ja-JP')}</span>
+              <span>¥{monthlyExpense.toLocaleString('ja-JP')}</span>
             </div>
           </div>
           {/* 背景装飾：銀行アイコン */}
