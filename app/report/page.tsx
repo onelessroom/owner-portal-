@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
+import BottomNav from '@/components/BottomNav'
 
 function formatJpn(n: number): string {
   if (n === 0) return '0円'
@@ -105,7 +106,7 @@ export default async function ReportPage({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
+    <div className="min-h-screen bg-gray-50 pb-24">
 
       {/* ヘッダー */}
       <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
@@ -258,6 +259,8 @@ export default async function ReportPage({
         </div>
 
       </main>
+
+      <BottomNav />
     </div>
   )
 }

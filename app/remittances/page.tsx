@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import RemittanceHistory from '@/components/RemittanceHistory'
+import BottomNav from '@/components/BottomNav'
 import { Remittance } from '@/types'
 
 export default function RemittancesPage() {
@@ -68,7 +69,7 @@ export default function RemittancesPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-24">
       <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">
@@ -99,6 +100,8 @@ export default function RemittancesPage() {
           <RemittanceHistory remittances={remittances} />
         )}
       </main>
+
+      <BottomNav />
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
 import DashboardCharts from '@/components/DashboardCharts'
+import BottomNav from '@/components/BottomNav'
 import type { MonthlyData } from '@/components/MonthlyBarChart'
 import type { Expense } from '@/types'
 
@@ -416,36 +417,7 @@ export default async function DashboardPage() {
         <div className="h-2" />
       </main>
 
-      {/* ボトムナビゲーション */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-20">
-        <div className="max-w-lg mx-auto grid grid-cols-4">
-          <Link href="/dashboard" className="flex flex-col items-center py-3 gap-0.5 text-blue-600">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-              <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
-              <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.432z" />
-            </svg>
-            <span className="text-xs font-semibold">ダッシュボード</span>
-          </Link>
-          <Link href="/remittances" className="flex flex-col items-center py-3 gap-0.5 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
-            </svg>
-            <span className="text-xs">送金履歴</span>
-          </Link>
-          <Link href="/expenses" className="flex flex-col items-center py-3 gap-0.5 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-            </svg>
-            <span className="text-xs">支出一覧</span>
-          </Link>
-          <Link href="/repairs" className="flex flex-col items-center py-3 gap-0.5 text-gray-400 hover:text-gray-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
-            </svg>
-            <span className="text-xs">修繕履歴</span>
-          </Link>
-        </div>
-      </nav>
+      <BottomNav />
 
     </div>
   )
