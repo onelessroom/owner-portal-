@@ -1,210 +1,120 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
-import { Repair } from '@/types'
+import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
+import RepairAccordion from '@/components/RepairAccordion'
 
-export default function RepairsPage() {
-  const router = useRouter()
-  const [repairs, setRepairs] = useState<Repair[]>([])
-  const [loading, setLoading] = useState(true)
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+export default async function RepairsPage() {
+  const supabase = await createServerSupabaseClient()
+  const svc = createServiceRoleSupabaseClient()
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: role } = await supabase
+    .from('user_roles').select('role').eq('user_id', user.id).single()
+  if (role?.role !== 'owner') redirect('/login')
+
+  let { data: owner } = await supabase
+    .from('owners').select('id, name').eq('user_id', user.id).single()
+  if (!owner && user.email) {
+    const { data: byEmail } = await svc
+      .from('owners').select('id, name').eq('email', user.email).single()
+    if (byEmail) {
+      await svc.from('owners').update({ user_id: user.id }).eq('id', byEmail.id)
+      owner = byEmail
+    }
+  }
+  if (!owner) redirect('/dashboard')
+
+  const { data: props } = await svc
+    .from('properties')
+    .select('id, name')
+    .eq('owner_id', owner.id)
+    .order('name')
+
+  const pids = (props ?? []).map(p => p.id)
+
+  type RawRepair = {
+    id: string
+    title: string
+    reason: string | null
+    contractor: string | null
+    repair_date: string | null
+    photo_urls: string[] | null
+    estimate_url: string | null
+    invoice_url: string | null
+    property_id: string
+    rooms: { room_number: string } | null
+    expenses: { amount: number } | null
   }
 
-  useEffect(() => {
-    const init = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
+  const { data: rawRepairs } = await svc
+    .from('repairs')
+    .select('id, title, reason, contractor, repair_date, photo_urls, estimate_url, invoice_url, property_id, rooms(room_number), expenses(amount)')
+    .in('property_id', pids.length ? pids : [''])
+    .order('repair_date', { ascending: false, nullsFirst: true })
 
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
+  const repairs = ((rawRepairs ?? []) as unknown as RawRepair[]).map(r => ({
+    id: r.id,
+    title: r.title,
+    reason: r.reason,
+    contractor: r.contractor,
+    repair_date: r.repair_date,
+    expense_amount: (r.expenses as { amount: number } | null)?.amount ?? null,
+    estimate_url: r.estimate_url,
+    invoice_url: r.invoice_url,
+    photo_urls: r.photo_urls,
+    room_number: null as string | null,
+    property_id: r.property_id,
+  }))
 
-      if (userRole?.role !== 'owner') {
-        router.push('/login')
-        return
-      }
+  const propertiesWithRepairs = (props ?? []).map(p => ({
+    id: p.id,
+    name: p.name,
+    repairs: repairs.filter(r => r.property_id === p.id),
+  }))
 
-      const { data: owner } = await supabase
-        .from('owners')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!owner) return
-
-      // オーナーの物件IDを取得
-      const { data: properties } = await supabase
-        .from('properties')
-        .select('id')
-        .eq('owner_id', owner.id)
-
-      const propertyIds = (properties ?? []).map((p) => p.id)
-
-      const { data } = await supabase
-        .from('repairs')
-        .select('*')
-        .in('property_id', propertyIds.length > 0 ? propertyIds : [''])
-        .order('repair_date', { ascending: false })
-
-      setRepairs((data ?? []) as Repair[])
-      setLoading(false)
-    }
-
-    init()
-  }, [router])
+  const totalCount = repairs.length
+  const inProgressCount = repairs.filter(r => !r.repair_date).length
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">
-            ← 戻る
-          </Link>
-          <h1 className="font-bold text-gray-900">修繕履歴</h1>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+    <div className="min-h-screen bg-gray-50 pb-10">
+
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1 text-blue-600 text-sm font-medium shrink-0"
         >
-          ログアウト
-        </button>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          戻る
+        </Link>
+        <h1 className="font-bold text-gray-900 text-base">修繕履歴の内訳</h1>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-3">
-        {loading ? (
-          <div className="text-center py-8 text-gray-400">読み込み中...</div>
-        ) : repairs.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
-            修繕履歴はありません
-          </div>
-        ) : (
-          repairs.map((repair) => (
-            <div
-              key={repair.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 space-y-3"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="font-semibold text-gray-900">{repair.title}</h2>
-                  {repair.repair_date && (
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      施工日：{repair.repair_date}
-                    </p>
-                  )}
-                </div>
-              </div>
+      <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
 
-              {repair.reason && (
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    発生理由：
-                  </span>
-                  <p className="text-sm text-gray-700 mt-0.5">{repair.reason}</p>
-                </div>
-              )}
-
-              {repair.contractor && (
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    施工業者：
-                  </span>
-                  <span className="text-sm text-gray-700 ml-1">
-                    {repair.contractor}
-                  </span>
-                </div>
-              )}
-
-              {/* 書類リンク */}
-              <div className="flex flex-wrap gap-2">
-                {repair.estimate_url && (
-                  <a
-                    href={repair.estimate_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
-                  >
-                    📄 見積書
-                  </a>
-                )}
-                {repair.invoice_url && (
-                  <a
-                    href={repair.invoice_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition-colors"
-                  >
-                    🧾 請求書
-                  </a>
-                )}
-              </div>
-
-              {/* 施工写真 */}
-              {repair.photo_urls && repair.photo_urls.length > 0 && (
-                <div>
-                  <span className="text-xs font-medium text-gray-500">
-                    施工写真：
-                  </span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {repair.photo_urls.map((url, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setLightboxUrl(url)}
-                        className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 transition-opacity"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={url}
-                          alt={`写真 ${i + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))
-        )}
-      </main>
-
-      {/* 写真拡大ライトボックス */}
-      {lightboxUrl && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-          onClick={() => setLightboxUrl(null)}
-        >
-          <div className="relative max-w-2xl w-full mx-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightboxUrl}
-              alt="拡大写真"
-              className="w-full h-auto rounded-lg"
-            />
-            <button
-              className="absolute top-2 right-2 text-white bg-black/50 rounded-full w-8 h-8 flex items-center justify-center"
-              onClick={() => setLightboxUrl(null)}
-            >
-              ✕
-            </button>
-          </div>
+        {/* サマリーカード */}
+        <div className="bg-orange-500 rounded-2xl p-5 text-white shadow-lg">
+          <p className="text-sm font-medium opacity-80">修繕履歴　全件</p>
+          <p className="text-4xl font-bold mt-1.5 tracking-tight tabular-nums">{totalCount}件</p>
+          {inProgressCount > 0 ? (
+            <p className="text-base font-semibold mt-1 opacity-90">
+              うち対応中 {inProgressCount}件
+            </p>
+          ) : (
+            <p className="text-base font-semibold mt-1 opacity-70">
+              対応中なし
+            </p>
+          )}
         </div>
-      )}
+
+        {/* 物件別アコーディオン */}
+        <RepairAccordion properties={propertiesWithRepairs} />
+
+      </main>
     </div>
   )
 }

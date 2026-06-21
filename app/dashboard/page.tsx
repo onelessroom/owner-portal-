@@ -277,17 +277,17 @@ export default async function DashboardPage() {
               <p className="text-sm font-bold text-gray-800">入居率</p>
               <p className="text-2xl font-bold text-green-600 mt-3 leading-tight">{occupancy}%</p>
               <div className="flex items-end justify-between mt-2">
-                <p className="text-xs text-gray-500">{occupied}/{totalRooms} 室入居中</p>
+                <p className="text-xs text-gray-500">{occupied}/{totalRooms}</p>
                 <p className="text-xs text-green-500">内訳を見る →</p>
               </div>
             </Link>
 
             {/* 修繕件数 */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+            <Link href="/repairs" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px] active:bg-orange-50 transition-colors">
               <p className="text-sm font-bold text-gray-800">修繕件数</p>
               <p className="text-2xl font-bold text-orange-500 mt-3 leading-tight">{thisMonthRepairCount}件</p>
-              <p className="text-xs text-gray-400 mt-2">対応中 0件</p>
-            </div>
+              <p className="text-xs text-orange-400 mt-2 text-right">内訳を見る →</p>
+            </Link>
           </div>
         </section>
 
