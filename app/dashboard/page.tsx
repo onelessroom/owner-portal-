@@ -264,13 +264,13 @@ export default async function DashboardPage() {
             </Link>
 
             {/* 支出 */}
-            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+            <Link href="/expenses" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px] active:bg-red-50 transition-colors">
               <p className="text-sm font-bold text-gray-800">今月の支出</p>
               <p className="text-2xl font-bold text-red-500 mt-3 leading-tight tabular-nums">
                 ¥{monthlyExpense.toLocaleString('ja-JP')}
               </p>
-              <p className="text-xs mt-2 invisible">-</p>
-            </div>
+              <p className="text-xs text-red-400 mt-2 text-right">内訳を見る →</p>
+            </Link>
 
             {/* 入居率 */}
             <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">

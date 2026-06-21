@@ -1,160 +1,125 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
-import ExpenseList from '@/components/ExpenseList'
-import { Expense } from '@/types'
+import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
+import ExpenseAccordion from '@/components/ExpenseAccordion'
 
-export default function ExpensesPage() {
-  const router = useRouter()
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string; month?: string }>
+}) {
+  const supabase = await createServerSupabaseClient()
+  const svc = createServiceRoleSupabaseClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: role } = await supabase
+    .from('user_roles').select('role').eq('user_id', user.id).single()
+  if (role?.role !== 'owner') redirect('/login')
+
+  let { data: owner } = await supabase
+    .from('owners').select('id').eq('user_id', user.id).single()
+  if (!owner && user.email) {
+    const { data: byEmail } = await svc
+      .from('owners').select('id').eq('email', user.email).single()
+    if (byEmail) {
+      await svc.from('owners').update({ user_id: user.id }).eq('id', byEmail.id)
+      owner = byEmail
+    }
+  }
+  if (!owner) redirect('/dashboard')
+
   const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
-  const [expenses, setExpenses] = useState<Expense[]>([])
-  const [loading, setLoading] = useState(true)
-  const [ownerId, setOwnerId] = useState<string | null>(null)
+  const params = await searchParams
+  const year = Number(params.year ?? now.getFullYear())
+  const month = Number(params.month ?? now.getMonth() + 1)
 
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/login')
+  const prevYear = month === 1 ? year - 1 : year
+  const prevMonth = month === 1 ? 12 : month - 1
+  const nextYear = month === 12 ? year + 1 : year
+  const nextMonth = month === 12 ? 1 : month + 1
+
+  const { data: props } = await supabase
+    .from('properties')
+    .select('id, name')
+    .eq('owner_id', owner.id)
+    .order('name')
+
+  const pids = (props ?? []).map(p => p.id)
+
+  const { data: expRows } = await supabase
+    .from('expenses')
+    .select('*')
+    .in('property_id', pids.length ? pids : [''])
+    .eq('year', year)
+    .eq('month', month)
+    .order('expense_date', { ascending: false })
+
+  // 物件ごとにグループ化（支出がある物件のみ表示）
+  const propertiesWithExpenses = (props ?? [])
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      expenses: (expRows ?? []).filter(e => e.property_id === p.id),
+    }))
+    .filter(p => p.expenses.length > 0)
+
+  // 物件未設定の支出は「未分類」としてまとめる
+  const unassigned = (expRows ?? []).filter(e => !e.property_id)
+  if (unassigned.length > 0) {
+    propertiesWithExpenses.push({ id: 'unassigned', name: '未分類', expenses: unassigned })
   }
 
-  useEffect(() => {
-    const init = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: userRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .single()
-
-      if (userRole?.role !== 'owner') {
-        router.push('/login')
-        return
-      }
-
-      const { data: owner } = await supabase
-        .from('owners')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (owner) setOwnerId(owner.id)
-    }
-    init()
-  }, [router])
-
-  useEffect(() => {
-    if (!ownerId) return
-
-    const fetchExpenses = async () => {
-      setLoading(true)
-      const supabase = createClient()
-
-      // オーナーの物件IDを取得
-      const { data: properties } = await supabase
-        .from('properties')
-        .select('id')
-        .eq('owner_id', ownerId)
-
-      const propertyIds = (properties ?? []).map((p) => p.id)
-
-      const { data } = await supabase
-        .from('expenses')
-        .select('*')
-        .in('property_id', propertyIds.length > 0 ? propertyIds : [''])
-        .eq('year', year)
-        .eq('month', month)
-        .order('expense_date', { ascending: false })
-
-      setExpenses((data ?? []) as Expense[])
-      setLoading(false)
-    }
-
-    fetchExpenses()
-  }, [ownerId, year, month])
-
-  const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0)
-
-  // 月移動
-  const prevMonth = () => {
-    if (month === 1) {
-      setYear((y) => y - 1)
-      setMonth(12)
-    } else {
-      setMonth((m) => m - 1)
-    }
-  }
-  const nextMonth = () => {
-    if (month === 12) {
-      setYear((y) => y + 1)
-      setMonth(1)
-    } else {
-      setMonth((m) => m + 1)
-    }
-  }
+  const totalExpense = (expRows ?? []).reduce((s, e) => s + (e.amount ?? 0), 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="text-gray-400 hover:text-gray-600">
-            ← 戻る
-          </Link>
-          <h1 className="font-bold text-gray-900">支出一覧</h1>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+    <div className="min-h-screen bg-gray-50 pb-10">
+
+      {/* ヘッダー */}
+      <header className="bg-white border-b border-gray-100 px-4 py-3 flex items-center gap-3 sticky top-0 z-10">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1 text-blue-600 text-sm font-medium shrink-0"
         >
-          ログアウト
-        </button>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          戻る
+        </Link>
+        <h1 className="font-bold text-gray-900 text-base">支出一覧</h1>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* 月フィルター */}
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-xl px-4 py-3">
-          <button
-            onClick={prevMonth}
-            className="text-gray-400 hover:text-gray-700 text-lg px-2"
+      <main className="max-w-lg mx-auto px-4 pt-5 space-y-4">
+
+        {/* 月切り替え */}
+        <div className="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-gray-100 shadow-sm">
+          <Link
+            href={`/expenses?year=${prevYear}&month=${prevMonth}`}
+            className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-full text-xl font-light"
           >
             ‹
-          </button>
-          <span className="font-semibold text-gray-900">
-            {year}年{month}月
-          </span>
-          <button
-            onClick={nextMonth}
-            className="text-gray-400 hover:text-gray-700 text-lg px-2"
+          </Link>
+          <span className="font-semibold text-gray-900 text-base">{year}年{month}月</span>
+          <Link
+            href={`/expenses?year=${nextYear}&month=${nextMonth}`}
+            className="w-10 h-10 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-full text-xl font-light"
           >
             ›
-          </button>
+          </Link>
         </div>
 
-        {/* 合計 */}
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex justify-between items-center">
-          <span className="text-sm text-red-700 font-medium">支出合計</span>
-          <span className="font-bold text-red-700 text-lg">
-            ¥{totalAmount.toLocaleString('ja-JP')}
-          </span>
+        {/* 合計カード */}
+        <div className="bg-red-600 rounded-2xl p-5 text-white shadow-lg">
+          <p className="text-sm font-medium opacity-80">{year}年{month}月　支出合計</p>
+          <p className="text-4xl font-bold mt-1.5 tracking-tight tabular-nums">
+            ¥{totalExpense.toLocaleString('ja-JP')}
+          </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-8 text-gray-400">読み込み中...</div>
-        ) : (
-          <ExpenseList expenses={expenses} />
-        )}
+        {/* 物件別アコーディオン */}
+        <ExpenseAccordion properties={propertiesWithExpenses} />
+
       </main>
     </div>
   )
