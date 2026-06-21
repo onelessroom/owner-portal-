@@ -255,13 +255,14 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
 
             {/* 家賃収入 */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <p className="text-sm font-semibold text-gray-700 leading-snug">家賃収入<br />（総収入）</p>
+            <Link href="/rent-income" className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col active:bg-blue-50 transition-colors">
+              <p className="text-xs font-semibold text-gray-700">家賃収入（総収入）</p>
               <p className="text-2xl font-bold text-blue-600 mt-2 leading-tight tabular-nums">
                 ¥{monthlyIncome.toLocaleString('ja-JP')}
               </p>
               <p className={`text-xs mt-1.5 ${incomeMoM.cls}`}>{incomeMoM.text}</p>
-            </div>
+              <p className="text-xs text-blue-400 mt-1 text-right">内訳を見る →</p>
+            </Link>
 
             {/* 支出 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
