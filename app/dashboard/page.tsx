@@ -153,6 +153,8 @@ export default async function DashboardPage() {
     (s, r) => s + getRemittanceAmount(r as Record<string, unknown>), 0)
   const prevRemittance = (prevRemRows ?? []).reduce(
     (s, r) => s + getRemittanceAmount(r as Record<string, unknown>), 0)
+  const monthlyIncome = monthlyRemittance + monthlyExpense
+  const prevIncome = prevRemittance + prevExpense
 
   const totalRooms = (roomRows ?? []).length
   const occupied = (roomRows ?? []).filter(r => r.status === 'occupied').length
@@ -177,7 +179,7 @@ export default async function DashboardPage() {
     remittance: 0,
   }))
 
-  const incomeMoM = formatMoM(monthlyRemittance, prevRemittance)
+  const incomeMoM = formatMoM(monthlyIncome, prevIncome)
   const expenseMoM = formatMoM(monthlyExpense, prevExpense)
 
   return (
@@ -217,6 +219,12 @@ export default async function DashboardPage() {
               </svg>
               <span>{month}月25日（{getDow(year, month, 25)}）振込予定</span>
             </div>
+            <div className="mt-2.5 bg-white bg-opacity-15 rounded-xl px-3 py-2 text-xs">
+              <span className="opacity-70 font-medium">内訳：</span>
+              <span className="font-medium">家賃収入 ¥{monthlyIncome.toLocaleString('ja-JP')}</span>
+              <span className="opacity-70"> − 支出 </span>
+              <span className="font-medium">¥{monthlyExpense.toLocaleString('ja-JP')}</span>
+            </div>
           </div>
           {/* 背景装飾：銀行アイコン */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-15 pointer-events-none">
@@ -252,9 +260,9 @@ export default async function DashboardPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
                 </svg>
               </div>
-              <p className="text-xs text-gray-500 mt-3">今月の収入</p>
+              <p className="text-xs text-gray-500 mt-3">家賃収入（総収入）</p>
               <p className="text-xl font-bold text-blue-600 mt-0.5 leading-tight tabular-nums">
-                ¥{monthlyRemittance.toLocaleString('ja-JP')}
+                ¥{monthlyIncome.toLocaleString('ja-JP')}
               </p>
               <p className={`text-xs mt-1 ${incomeMoM.cls}`}>{incomeMoM.text}</p>
             </div>
