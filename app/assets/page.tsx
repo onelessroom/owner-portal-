@@ -63,21 +63,32 @@ export default async function AssetsPage() {
   const isInMonths = (year: number, month: number, ms: Array<{ year: number; month: number }>) =>
     ms.some(m => m.year === year && m.month === month)
 
-  // 物件取得
+  // 物件取得（acquisition_price を除いた基本クエリ — 未マイグレーションでも失敗しない）
   const { data: propsRaw } = await svc
     .from('properties')
-    .select('id, name, address, acquisition_price, total_units, rooms(id, rent_amount, status)')
+    .select('id, name, address, total_units, rooms(id, rent_amount, status)')
     .eq('owner_id', owner.id)
     .order('name')
 
-  const props = (propsRaw ?? []) as Array<{
-    id: string; name: string; address: string | null;
-    acquisition_price: number | null; total_units: number;
+  const propsBase = (propsRaw ?? []) as Array<{
+    id: string; name: string; address: string | null; total_units: number;
     rooms: Array<{ id: string; rent_amount: number | null; status: string }>
   }>
-  const pids = props.map(p => p.id)
+  const pids = propsBase.map(p => p.id)
+
+  // acquisition_price だけ別クエリ（マイグレーション未実行でも全体が壊れないよう分離）
+  const { data: priceRows } = await svc
+    .from('properties')
+    .select('id, acquisition_price')
+    .eq('owner_id', owner.id)
+  const priceMap = new Map(
+    ((priceRows ?? []) as Array<{ id: string; acquisition_price: number | null }>)
+      .map(r => [r.id, r.acquisition_price ?? null])
+  )
+  const props = propsBase.map(p => ({ ...p, acquisition_price: priceMap.get(p.id) ?? null }))
 
   // データ取得
+  // 前年クエリは lt('year', startYear+1) にして前年の1〜6月分も取得する
   const [
     { data: remRows },
     { data: expRows },
@@ -89,9 +100,9 @@ export default async function AssetsPage() {
     svc.from('expenses').select('year,month,amount,property_id')
       .in('property_id', pids.length ? pids : ['_']).gte('year', startYear),
     svc.from('remittances').select('year,month,remittance_amount')
-      .eq('owner_id', owner.id).gte('year', startYearPrev).lt('year', startYear),
+      .eq('owner_id', owner.id).gte('year', startYearPrev).lt('year', startYear + 1),
     svc.from('expenses').select('year,month,amount,property_id')
-      .in('property_id', pids.length ? pids : ['_']).gte('year', startYearPrev).lt('year', startYear),
+      .in('property_id', pids.length ? pids : ['_']).gte('year', startYearPrev).lt('year', startYear + 1),
   ])
 
   type Rem = { year: number; month: number; remittance_amount: number }
