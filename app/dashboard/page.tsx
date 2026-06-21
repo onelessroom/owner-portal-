@@ -207,39 +207,40 @@ export default async function DashboardPage() {
       <main className="max-w-lg mx-auto px-4 pt-5 space-y-5">
 
         {/* 送金予定額カード（メイン青カード） */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl p-5 text-white relative overflow-hidden shadow-lg">
-          <div className="relative z-10">
-            <p className="text-sm font-medium opacity-80">今月の送金予定額</p>
-            <p className="text-4xl font-bold mt-1.5 tracking-tight">
-              ¥{monthlyRemittance.toLocaleString('ja-JP')}
-            </p>
-            <div className="flex items-center gap-1.5 mt-2 text-sm opacity-75">
+        <div className="bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl p-5 text-white shadow-lg">
+          <p className="text-sm font-medium opacity-80 mb-4">今月の送金予定額</p>
+
+          {/* 内訳：縦積み */}
+          <div className="space-y-2">
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm opacity-80">家賃収入</span>
+              <span className="text-xl font-bold tabular-nums">¥{monthlyIncome.toLocaleString('ja-JP')}</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-sm opacity-80">支出</span>
+              <span className="text-xl font-semibold tabular-nums opacity-90">− ¥{monthlyExpense.toLocaleString('ja-JP')}</span>
+            </div>
+            <div className="border-t border-white/40 pt-3">
+              <div className="flex items-baseline justify-between">
+                <span className="text-base font-semibold">送金予定額</span>
+                <span className="text-3xl font-bold tabular-nums tracking-tight">¥{monthlyRemittance.toLocaleString('ja-JP')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-1.5 text-sm opacity-75">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 shrink-0">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 9v7.5" />
               </svg>
               <span>{month}月25日（{getDow(year, month, 25)}）振込予定</span>
             </div>
-            <div className="mt-2.5 bg-white/15 rounded-xl px-3 py-2 text-xs text-white">
-              <span className="opacity-70">内訳：</span>
-              <span>家賃収入 ¥{monthlyIncome.toLocaleString('ja-JP')}</span>
-              <span className="opacity-70"> − 支出 </span>
-              <span>¥{monthlyExpense.toLocaleString('ja-JP')}</span>
-            </div>
-          </div>
-          {/* 背景装飾：銀行アイコン */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-15 pointer-events-none">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-24 h-24">
-              <path d="M11.584 2.376a.75.75 0 01.832 0l9 6a.75.75 0 11-.832 1.248L12 3.901 3.416 9.624a.75.75 0 01-.832-1.248l9-6z" />
-              <path fillRule="evenodd" d="M20.25 10.332v9.918H21a.75.75 0 010 1.5H3a.75.75 0 010-1.5h.75v-9.918a.75.75 0 01.634-.74A49.109 49.109 0 0112 9c2.59 0 5.134.202 7.616.592a.75.75 0 01.634.74zm-7.5 2.418a.75.75 0 00-1.5 0v6.75a.75.75 0 001.5 0v-6.75zm3-.75a.75.75 0 01.75.75v6.75a.75.75 0 01-1.5 0v-6.75a.75.75 0 01.75-.75zM9 12.75a.75.75 0 00-1.5 0v6.75a.75.75 0 001.5 0v-6.75z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="mt-4 flex justify-end">
             <Link
               href="/remittances"
-              className="bg-white bg-opacity-95 text-blue-600 text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-1 shadow-sm"
+              className="bg-white/90 text-blue-600 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm"
             >
-              送金履歴を見る
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+              送金履歴
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
               </svg>
             </Link>
@@ -253,56 +254,36 @@ export default async function DashboardPage() {
           </h2>
           <div className="grid grid-cols-2 gap-3">
 
-            {/* 収入 */}
+            {/* 家賃収入 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-blue-600">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">家賃収入（総収入）</p>
-              <p className="text-xl font-bold text-blue-600 mt-0.5 leading-tight tabular-nums">
+              <p className="text-sm font-semibold text-gray-700 leading-snug">家賃収入<br />（総収入）</p>
+              <p className="text-2xl font-bold text-blue-600 mt-2 leading-tight tabular-nums">
                 ¥{monthlyIncome.toLocaleString('ja-JP')}
               </p>
-              <p className={`text-xs mt-1 ${incomeMoM.cls}`}>{incomeMoM.text}</p>
+              <p className={`text-xs mt-1.5 ${incomeMoM.cls}`}>{incomeMoM.text}</p>
             </div>
 
             {/* 支出 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-red-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6L9 12.75l4.286-4.286a11.948 11.948 0 014.306 6.43l.776 2.898m0 0l3.182-5.511m-3.182 5.51l-5.511-3.181" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">今月の支出</p>
-              <p className="text-xl font-bold text-red-500 mt-0.5 leading-tight tabular-nums">
+              <p className="text-sm font-semibold text-gray-700 leading-snug">今月の支出</p>
+              <p className="text-2xl font-bold text-red-500 mt-2 leading-tight tabular-nums">
                 ¥{monthlyExpense.toLocaleString('ja-JP')}
               </p>
-              <p className={`text-xs mt-1 ${expenseMoM.cls}`}>{expenseMoM.text}</p>
+              <p className={`text-xs mt-1.5 ${expenseMoM.cls}`}>{expenseMoM.text}</p>
             </div>
 
             {/* 入居率 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-green-600">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">入居率</p>
-              <p className="text-xl font-bold text-green-600 mt-0.5 leading-tight">{occupancy}%</p>
-              <p className="text-xs text-gray-400 mt-1">前月比 ±0%</p>
+              <p className="text-sm font-semibold text-gray-700 leading-snug">入居率</p>
+              <p className="text-2xl font-bold text-green-600 mt-2 leading-tight">{occupancy}%</p>
+              <p className="text-xs text-gray-500 mt-1.5">{occupied}/{totalRooms} 室入居中</p>
             </div>
 
             {/* 修繕件数 */}
             <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-orange-500">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437l1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008z" />
-                </svg>
-              </div>
-              <p className="text-xs text-gray-500 mt-3">修繕件数</p>
-              <p className="text-xl font-bold text-orange-500 mt-0.5 leading-tight">{thisMonthRepairCount}件</p>
-              <p className="text-xs text-gray-400 mt-1">対応中 0件</p>
+              <p className="text-sm font-semibold text-gray-700 leading-snug">修繕件数</p>
+              <p className="text-2xl font-bold text-orange-500 mt-2 leading-tight">{thisMonthRepairCount}件</p>
+              <p className="text-xs text-gray-400 mt-1.5">対応中 0件</p>
             </div>
           </div>
         </section>
