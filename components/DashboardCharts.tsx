@@ -13,8 +13,8 @@ interface Props {
 export default function DashboardCharts({ expenses, monthlyData }: Props) {
   return (
     <>
-      <ExpensePieChart expenses={expenses} />
       <MonthlyBarChart data={monthlyData} />
+      <ExpensePieChart expenses={expenses} />
     </>
   )
 }

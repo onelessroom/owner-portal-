@@ -45,6 +45,7 @@ interface RepairRow {
   repair_date: string | null
   created_at: string
   rooms: { room_number: string } | null
+  properties: { name: string } | null
 }
 
 function repairStatus(repairDate: string | null) {
@@ -136,9 +137,11 @@ export default async function DashboardPage() {
     supabase.from('rooms').select('status, property_id')
       .in('property_id', pids.length ? pids : noPids),
     svc.from('repairs')
-      .select('id, title, repair_date, created_at, rooms(room_number)')
+      .select('id, title, repair_date, created_at, rooms(room_number), properties(name)')
       .in('property_id', pids.length ? pids : noPids)
-      .order('created_at', { ascending: false }).limit(10),
+      .order('repair_date', { ascending: false, nullsFirst: true })
+      .order('created_at', { ascending: false })
+      .limit(20),
     supabase.from('expenses').select('amount, year, month')
       .in('property_id', pids.length ? pids : noPids)
       .gte('year', minYear).lte('year', maxYear),
@@ -165,7 +168,9 @@ export default async function DashboardPage() {
     const d = new Date((r.repair_date || r.created_at.split('T')[0]) as string)
     return d.getFullYear() === year && d.getMonth() + 1 === month
   }).length
-  const recentRepairs = allRepairs.slice(0, 3)
+  const inProgressRepairs = allRepairs.filter(r => !r.repair_date)
+  const completedRepairs = allRepairs.filter(r => r.repair_date)
+  const recentRepairs = [...inProgressRepairs, ...completedRepairs.slice(0, 3)]
   const recentExpenses = (expRows ?? []).slice(0, 3) as Expense[]
 
   const monthlyData: MonthlyData[] = months6.map(({ year: y, month: m }) => ({
@@ -291,6 +296,12 @@ export default async function DashboardPage() {
           </div>
         </section>
 
+        {/* グラフ（recharts, CSR） */}
+        <DashboardCharts
+          expenses={(expRows ?? []) as Expense[]}
+          monthlyData={monthlyData}
+        />
+
         {/* 最近の支出 */}
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -342,11 +353,12 @@ export default async function DashboardPage() {
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
               {recentRepairs.map((r, i) => {
                 const room = r.rooms as { room_number: string } | null
+                const propName = (r.properties as { name: string } | null)?.name ?? null
                 const st = repairStatus(r.repair_date)
                 return (
                   <div
                     key={r.id}
-                    className={`flex items-center gap-3 px-4 py-3.5 ${
+                    className={`flex items-center gap-3 px-4 py-4 ${
                       i < recentRepairs.length - 1 ? 'border-b border-gray-50' : ''
                     }`}
                   >
@@ -362,8 +374,11 @@ export default async function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
+                      {propName && (
+                        <p className="text-xs font-medium text-gray-400 mb-0.5">{propName}</p>
+                      )}
                       <p className="text-sm font-medium text-gray-900 truncate">
-                        {room ? `${room.room_number}号室 ` : ''}{r.title}
+                        {room ? `${room.room_number}号室　` : ''}{r.title}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <p className="text-xs text-gray-400">
@@ -383,12 +398,6 @@ export default async function DashboardPage() {
             </div>
           )}
         </section>
-
-        {/* グラフ（recharts, CSR） */}
-        <DashboardCharts
-          expenses={(expRows ?? []) as Expense[]}
-          monthlyData={monthlyData}
-        />
 
         <div className="h-2" />
       </main>

@@ -54,13 +54,11 @@ export default function MonthlyBarChart({ data }: Props) {
           <Tooltip formatter={(value) => fmt(value as number | string | undefined)} />
           <Legend
             formatter={(value) => (
-              <span className="text-xs text-gray-700">
-                {value === 'income' ? '収入（送金額）' : '支出'}
-              </span>
+              <span className="text-xs text-gray-700">{value}</span>
             )}
           />
-          <Bar dataKey="income" name="income" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-          <Bar dataKey="expense" name="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="income" name="収入（送金額）" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+          <Bar dataKey="expense" name="支出" fill="#ef4444" radius={[3, 3, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
