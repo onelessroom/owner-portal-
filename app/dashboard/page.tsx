@@ -255,36 +255,35 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
 
             {/* 家賃収入 */}
-            <Link href="/rent-income" className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex flex-col active:bg-blue-50 transition-colors">
-              <p className="text-xs font-semibold text-gray-700">家賃収入（総収入）</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2 leading-tight tabular-nums">
+            <Link href="/rent-income" className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px] active:bg-blue-50 transition-colors">
+              <p className="text-sm font-bold text-gray-800">家賃収入（総収入）</p>
+              <p className="text-2xl font-bold text-blue-600 mt-3 leading-tight tabular-nums">
                 ¥{monthlyIncome.toLocaleString('ja-JP')}
               </p>
-              <p className={`text-xs mt-1.5 ${incomeMoM.cls}`}>{incomeMoM.text}</p>
-              <p className="text-xs text-blue-400 mt-1 text-right">内訳を見る →</p>
+              <p className="text-xs text-blue-400 mt-2 text-right">内訳を見る →</p>
             </Link>
 
             {/* 支出 */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <p className="text-sm font-semibold text-gray-700 leading-snug">今月の支出</p>
-              <p className="text-2xl font-bold text-red-500 mt-2 leading-tight tabular-nums">
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+              <p className="text-sm font-bold text-gray-800">今月の支出</p>
+              <p className="text-2xl font-bold text-red-500 mt-3 leading-tight tabular-nums">
                 ¥{monthlyExpense.toLocaleString('ja-JP')}
               </p>
-              <p className={`text-xs mt-1.5 ${expenseMoM.cls}`}>{expenseMoM.text}</p>
+              <p className="text-xs mt-2 invisible">-</p>
             </div>
 
             {/* 入居率 */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <p className="text-sm font-semibold text-gray-700 leading-snug">入居率</p>
-              <p className="text-2xl font-bold text-green-600 mt-2 leading-tight">{occupancy}%</p>
-              <p className="text-xs text-gray-500 mt-1.5">{occupied}/{totalRooms} 室入居中</p>
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+              <p className="text-sm font-bold text-gray-800">入居率</p>
+              <p className="text-2xl font-bold text-green-600 mt-3 leading-tight">{occupancy}%</p>
+              <p className="text-xs text-gray-500 mt-2">{occupied}/{totalRooms} 室入居中</p>
             </div>
 
             {/* 修繕件数 */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-              <p className="text-sm font-semibold text-gray-700 leading-snug">修繕件数</p>
-              <p className="text-2xl font-bold text-orange-500 mt-2 leading-tight">{thisMonthRepairCount}件</p>
-              <p className="text-xs text-gray-400 mt-1.5">対応中 0件</p>
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col justify-between min-h-[130px]">
+              <p className="text-sm font-bold text-gray-800">修繕件数</p>
+              <p className="text-2xl font-bold text-orange-500 mt-3 leading-tight">{thisMonthRepairCount}件</p>
+              <p className="text-xs text-gray-400 mt-2">対応中 0件</p>
             </div>
           </div>
         </section>
