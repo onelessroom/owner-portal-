@@ -9,12 +9,14 @@ export interface PropertyAsset {
   address: string | null
   acquisition_price: number | null
   annualExpense: number
-  estimatedAnnualIncome: number
+  estimatedAnnualIncome: number  // 満室想定（現在の入居家賃 × 12）
+  actualAnnualIncome: number     // 実績（rent_payments の12ヶ月合計）
+  dataMonths: number             // 実績データがある月数（0〜12）
 }
 
-function formatYield(income: number, price: number | null): string {
-  if (price == null || price === 0) return '—'
-  return ((income / price) * 100).toFixed(2) + '%'
+function calcYield(income: number, price: number | null): string {
+  if (price == null || price === 0 || income === 0) return '—'
+  return ((income / price) * 100).toFixed(1) + '%'
 }
 
 interface Props {
@@ -40,7 +42,8 @@ export default function AssetsAccordion({ properties }: Props) {
     <div className="space-y-2">
       {properties.map(p => {
         const isOpen = openIds.has(p.id)
-        const yieldPct = formatYield(p.estimatedAnnualIncome, p.acquisition_price)
+        const actualYield = calcYield(p.actualAnnualIncome, p.acquisition_price)
+        const estimatedYield = calcYield(p.estimatedAnnualIncome, p.acquisition_price)
         return (
           <div key={p.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
             <button
@@ -52,7 +55,12 @@ export default function AssetsAccordion({ properties }: Props) {
                 {p.acquisition_price != null ? (
                   <p className="text-xs text-gray-500 mt-0.5">
                     取得価格 {formatYen(p.acquisition_price)}
-                    {yieldPct !== '—' && <span className="ml-2 text-blue-600 font-semibold">利回り {yieldPct}</span>}
+                    {actualYield !== '—'
+                      ? <span className="ml-2 text-blue-600 font-semibold">実績利回り {actualYield}</span>
+                      : estimatedYield !== '—'
+                        ? <span className="ml-2 text-gray-400">満室想定 {estimatedYield}</span>
+                        : null
+                    }
                   </p>
                 ) : (
                   <p className="text-xs text-orange-500 mt-0.5">取得価格未登録</p>
@@ -72,27 +80,48 @@ export default function AssetsAccordion({ properties }: Props) {
 
             {isOpen && (
               <div className="border-t border-gray-50 px-4 py-4 space-y-3 bg-gray-50/50">
+                {/* 実績年間収入 */}
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">推定年間収入</span>
-                  <span className="font-semibold text-blue-600">{formatYen(p.estimatedAnnualIncome)}</span>
+                  <span className="text-gray-600">実績年間収入</span>
+                  <span className="font-semibold text-blue-600">
+                    {p.actualAnnualIncome > 0 ? formatYen(p.actualAnnualIncome) : '—'}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">年間支出</span>
                   <span className="font-semibold text-red-500">− {formatYen(p.annualExpense)}</span>
                 </div>
+
                 {p.acquisition_price != null ? (
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">取得価格</span>
                       <span className="font-semibold text-gray-900">{formatYen(p.acquisition_price)}</span>
                     </div>
+
+                    {/* 実績表面利回り（主役） */}
                     <div className="flex justify-between text-sm border-t border-gray-100 pt-3 mt-1">
-                      <span className="text-gray-600 font-medium">表面利回り</span>
-                      <span className="font-bold text-gray-900">{yieldPct}</span>
+                      <span className="text-gray-700 font-medium">実績表面利回り</span>
+                      <span className="font-bold text-gray-900">{actualYield}</span>
                     </div>
-                    <p className="text-xs text-gray-400 leading-relaxed">
-                      年間家賃収入 ÷ 物件の購入価格で計算した、ざっくりの利回りです
-                    </p>
+                    <p className="text-xs text-gray-400">直近12ヶ月の実績収入 ÷ 取得価格</p>
+                    {p.dataMonths === 0 && (
+                      <p className="text-xs text-amber-600">
+                        実績データ未登録（家賃入金データが登録されると表示されます）
+                      </p>
+                    )}
+                    {p.dataMonths > 0 && p.dataMonths < 12 && (
+                      <p className="text-xs text-amber-600">
+                        データ蓄積中（{p.dataMonths}/12ヶ月）— 利回りが実態より低く出ています
+                      </p>
+                    )}
+
+                    {/* 満室想定利回り（参考値・控えめ） */}
+                    <div className="flex justify-between text-xs text-gray-400 pt-2 border-t border-gray-50 mt-1">
+                      <span>満室想定利回り（参考）</span>
+                      <span className="font-medium">{estimatedYield}</span>
+                    </div>
+                    <p className="text-xs text-gray-400">現在の入居家賃 × 12 ÷ 取得価格</p>
                   </>
                 ) : (
                   <p className="text-xs text-orange-500">

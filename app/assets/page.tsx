@@ -81,11 +81,13 @@ export default async function AssetsPage() {
 
   // データ取得
   // 前年クエリは lt('year', startYear+1) にして前年の1〜6月分も取得する
+  const allRoomIds = propsBase.flatMap(p => p.rooms.map(r => r.id))
   const [
     { data: remRows },
     { data: expRows },
     { data: remRowsPrev },
     { data: expRowsPrev },
+    { data: rpRaw },
   ] = await Promise.all([
     svc.from('remittances').select('year,month,remittance_amount')
       .eq('owner_id', owner.id).gte('year', startYear),
@@ -95,20 +97,42 @@ export default async function AssetsPage() {
       .eq('owner_id', owner.id).gte('year', startYearPrev).lt('year', startYear + 1),
     svc.from('expenses').select('year,month,amount,property_id')
       .in('property_id', pids.length ? pids : ['_']).gte('year', startYearPrev).lt('year', startYear + 1),
+    // rent_payments: 物件別の実績収入源（物件別利回りの分子）
+    svc.from('rent_payments').select('room_id,year,month,amount')
+      .in('room_id', allRoomIds.length ? allRoomIds : ['_']).gte('year', startYear),
   ])
 
   type Rem = { year: number; month: number; remittance_amount: number }
   type Exp = { year: number; month: number; amount: number; property_id: string }
+  type RentPay = { room_id: string; year: number; month: number; amount: number }
 
   const rems = ((remRows ?? []) as Rem[]).filter(r => isInMonths(r.year, r.month, months12))
   const exps = ((expRows ?? []) as Exp[]).filter(e => isInMonths(e.year, e.month, months12))
   const remsPrev = ((remRowsPrev ?? []) as Rem[]).filter(r => isInMonths(r.year, r.month, months12Prev))
   const expsPrev = ((expRowsPrev ?? []) as Exp[]).filter(e => isInMonths(e.year, e.month, months12Prev))
+  const rps = ((rpRaw ?? []) as RentPay[]).filter(r => isInMonths(r.year, r.month, months12))
+
+  // room_id → property_id マッピング（物件別集計用）
+  const roomToProp = new Map<string, string>()
+  propsBase.forEach(p => p.rooms.forEach(r => roomToProp.set(r.id, p.id)))
+
+  // 物件ごとの実績収入・データ月数を集計
+  const propActualIncomeMap = new Map<string, number>()
+  const propDataMonthsMap = new Map<string, Set<string>>()
+  for (const rp of rps) {
+    const propId = roomToProp.get(rp.room_id)
+    if (!propId) continue
+    propActualIncomeMap.set(propId, (propActualIncomeMap.get(propId) ?? 0) + rp.amount)
+    if (!propDataMonthsMap.has(propId)) propDataMonthsMap.set(propId, new Set())
+    propDataMonthsMap.get(propId)!.add(`${rp.year}-${rp.month}`)
+  }
+  // rent_payments の全物件合計（表面利回りの分子として物件別と定義を統一）
+  const totalActualIncome = rps.reduce((s, r) => s + r.amount, 0)
 
   // 集計（当期）
   const totalRemittance = rems.reduce((s, r) => s + r.remittance_amount, 0)
   const totalExpense = exps.reduce((s, e) => s + e.amount, 0)
-  const totalIncome = totalRemittance + totalExpense // 家賃収入（グロス）
+  const totalIncome = totalRemittance + totalExpense // 家賃収入（グロス・管理会社精算ベース）
   const totalProfit = totalRemittance // 収支 = 家賃収入 - 支出 = 送金額
 
   // 集計（前年）
@@ -118,10 +142,12 @@ export default async function AssetsPage() {
   const hasPrevData = remsPrev.length > 0 || expsPrev.length > 0
 
   // 全体利回り（取得価格登録済み物件のみ）
+  // 分子: rent_paymentsがあれば物件別と同じ定義で統一、なければ管理会社精算ベースにフォールバック
   const propsWithPrice = props.filter(p => p.acquisition_price != null && p.acquisition_price > 0)
   const totalAcqPrice = propsWithPrice.reduce((s, p) => s + (p.acquisition_price ?? 0), 0)
+  const overallYieldIncome = totalActualIncome > 0 ? totalActualIncome : totalIncome
   const overallYield = propsWithPrice.length > 0 && totalAcqPrice > 0
-    ? (totalIncome / totalAcqPrice) * 100
+    ? (overallYieldIncome / totalAcqPrice) * 100
     : null
   const netYield = propsWithPrice.length > 0 && totalAcqPrice > 0
     ? (totalProfit / totalAcqPrice) * 100
@@ -149,6 +175,9 @@ export default async function AssetsPage() {
       .filter(r => r.status === 'occupied')
       .reduce((s, r) => s + (r.rent_amount ?? 0), 0)
     const estimatedAnnualIncome = monthlyRent * 12
+    // 実績収入: rent_payments から。未登録なら 0（表示側で '—' にする）
+    const actualAnnualIncome = propActualIncomeMap.get(p.id) ?? 0
+    const dataMonths = propDataMonthsMap.get(p.id)?.size ?? 0
     return {
       id: p.id,
       name: p.name,
@@ -156,6 +185,8 @@ export default async function AssetsPage() {
       acquisition_price: p.acquisition_price,
       annualExpense,
       estimatedAnnualIncome,
+      actualAnnualIncome,
+      dataMonths,
     }
   })
 
@@ -233,7 +264,11 @@ export default async function AssetsPage() {
                     <span className="text-sm text-gray-500">全体の表面利回り</span>
                     <span className="text-2xl font-bold text-gray-900">{pctStr(overallYield)}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">年間家賃 ÷ 物件価格</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {totalActualIncome > 0
+                      ? '直近12ヶ月の実績収入 ÷ 物件価格'
+                      : '直近12ヶ月の実績収入（管理会社精算ベース） ÷ 物件価格'}
+                  </p>
                 </div>
               ) : (
                 <div className="flex items-center justify-between py-1">

@@ -11,7 +11,7 @@ ALTER TABLE properties ADD COLUMN IF NOT EXISTS acquisition_price BIGINT;
 --   年間家賃収入 = 在室(occupied)の部屋の rent_amount 合計 × 12
 UPDATE properties
 SET acquisition_price = (
-  SELECT (ROUND(SUM(r.rent_amount)::float * 12.0 / 0.08 / 10000))::bigint * 10000
+  SELECT (ROUND((SUM(r.rent_amount) * 12.0 / 0.08 / 10000)::numeric))::bigint * 10000
   FROM rooms r
   WHERE r.property_id = properties.id
     AND r.status = 'occupied'
@@ -31,7 +31,7 @@ SELECT
   SUM(r.rent_amount) FILTER (WHERE r.status = 'occupied') * 12 AS annual_rent,
   p.acquisition_price,
   ROUND(
-    SUM(r.rent_amount) FILTER (WHERE r.status = 'occupied')::float * 12.0 / p.acquisition_price * 100,
+    (SUM(r.rent_amount) FILTER (WHERE r.status = 'occupied') * 12.0 / p.acquisition_price * 100)::numeric,
     2
   ) AS yield_pct
 FROM properties p
