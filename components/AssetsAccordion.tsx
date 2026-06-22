@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatYen } from '@/lib/format'
 
 export interface PropertyAsset {
   id: string
@@ -9,15 +10,6 @@ export interface PropertyAsset {
   acquisition_price: number | null
   annualExpense: number
   estimatedAnnualIncome: number
-}
-
-function formatJpn(n: number): string {
-  if (n === 0) return '0円'
-  const man = Math.floor(n / 10000)
-  const rem = n % 10000
-  if (man === 0) return `${rem.toLocaleString('ja-JP')}円`
-  if (rem === 0) return `${man}万円`
-  return `${man}万${rem.toLocaleString('ja-JP')}円`
 }
 
 function formatYield(income: number, price: number | null): string {
@@ -59,7 +51,7 @@ export default function AssetsAccordion({ properties }: Props) {
                 <p className="font-bold text-gray-900">{p.name}</p>
                 {p.acquisition_price != null ? (
                   <p className="text-xs text-gray-500 mt-0.5">
-                    取得価格 {formatJpn(p.acquisition_price)}
+                    取得価格 {formatYen(p.acquisition_price)}
                     {yieldPct !== '—' && <span className="ml-2 text-blue-600 font-semibold">利回り {yieldPct}</span>}
                   </p>
                 ) : (
@@ -82,17 +74,17 @@ export default function AssetsAccordion({ properties }: Props) {
               <div className="border-t border-gray-50 px-4 py-4 space-y-3 bg-gray-50/50">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">推定年間収入</span>
-                  <span className="font-semibold text-blue-600">{formatJpn(p.estimatedAnnualIncome)}</span>
+                  <span className="font-semibold text-blue-600">{formatYen(p.estimatedAnnualIncome)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">年間支出</span>
-                  <span className="font-semibold text-red-500">− {formatJpn(p.annualExpense)}</span>
+                  <span className="font-semibold text-red-500">− {formatYen(p.annualExpense)}</span>
                 </div>
                 {p.acquisition_price != null ? (
                   <>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">取得価格</span>
-                      <span className="font-semibold text-gray-900">{formatJpn(p.acquisition_price)}</span>
+                      <span className="font-semibold text-gray-900">{formatYen(p.acquisition_price)}</span>
                     </div>
                     <div className="flex justify-between text-sm border-t border-gray-100 pt-3 mt-1">
                       <span className="text-gray-600 font-medium">表面利回り</span>

@@ -1,16 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
+import { formatYen } from '@/lib/format'
 import BottomNav from '@/components/BottomNav'
-
-function formatJpn(n: number): string {
-  if (n === 0) return '0円'
-  const man = Math.floor(n / 10000)
-  const rem = n % 10000
-  if (man === 0) return `${rem.toLocaleString('ja-JP')}円`
-  if (rem === 0) return `${man}万円`
-  return `${man}万${rem.toLocaleString('ja-JP')}円`
-}
 
 export default async function ReportPage({
   searchParams,
@@ -162,7 +154,7 @@ export default async function ReportPage({
               {/* 送金額（青色で金額を強調） */}
               <p className="text-xl font-bold text-gray-900 leading-relaxed">
                 今月の送金額は{' '}
-                <span className="text-blue-600">{formatJpn(remittance)}</span>
+                <span className="text-blue-600">{formatYen(remittance)}</span>
                 {' '}でした。
               </p>
 
@@ -171,7 +163,7 @@ export default async function ReportPage({
                 <p className="text-base text-gray-700 leading-relaxed">
                   {remittanceDiff === 0
                     ? '先月と同額でした。'
-                    : `先月より${formatJpn(Math.abs(remittanceDiff))}${remittanceDiff > 0 ? '増えました' : '減りました'}。`
+                    : `先月より${formatYen(Math.abs(remittanceDiff))}${remittanceDiff > 0 ? '増えました' : '減りました'}。`
                   }
                 </p>
               )}
@@ -186,7 +178,7 @@ export default async function ReportPage({
                         <span className="shrink-0 text-gray-400 mt-0.5">・</span>
                         <span className="flex-1 leading-snug">{e.description || e.category}</span>
                         <span className="tabular-nums shrink-0 ml-2 font-semibold text-gray-900">
-                          {formatJpn(e.amount)}
+                          {formatYen(e.amount)}
                         </span>
                       </div>
                     ))}
@@ -215,7 +207,7 @@ export default async function ReportPage({
             <div className="bg-blue-600 px-5 py-4 flex items-center justify-between">
               <span className="text-sm font-bold text-white/80">送金額</span>
               <span className="text-2xl font-bold text-white tabular-nums">
-                {formatJpn(remittance)}
+                {formatYen(remittance)}
               </span>
             </div>
 
@@ -225,14 +217,14 @@ export default async function ReportPage({
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm text-gray-600">家賃収入</span>
                   <span className="text-base font-semibold text-blue-600 tabular-nums">
-                    {formatJpn(income)}
+                    {formatYen(income)}
                   </span>
                 </div>
               )}
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-gray-600">支出</span>
                 <span className="text-base font-semibold text-red-500 tabular-nums">
-                  − {formatJpn(totalExpense)}
+                  − {formatYen(totalExpense)}
                 </span>
               </div>
             </div>

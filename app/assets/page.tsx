@@ -1,26 +1,10 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServerSupabaseClient, createServiceRoleSupabaseClient } from '@/lib/supabase-server'
+import { formatYen } from '@/lib/format'
 import BottomNav from '@/components/BottomNav'
 import AssetsChart, { ChartMonth } from '@/components/AssetsChart'
 import AssetsAccordion, { PropertyAsset } from '@/components/AssetsAccordion'
-
-function formatJpn(n: number): string {
-  if (n === 0) return '0円'
-  const oku = Math.floor(n / 100_000_000)
-  const man = Math.floor((n % 100_000_000) / 10_000)
-  const rem = n % 10_000
-  let result = ''
-  if (oku > 0) result += `${oku}億`
-  if (man > 0) result += `${man}万`
-  if (rem > 0) result += `${rem.toLocaleString('ja-JP')}`
-  return result + '円'
-}
-
-function formatYen(n: number): string {
-  const prefix = n < 0 ? '−¥' : '¥'
-  return prefix + Math.abs(n).toLocaleString('ja-JP')
-}
 
 function pctStr(v: number) {
   return v.toFixed(1) + '%'
@@ -30,7 +14,7 @@ function diffLabel(curr: number, prev: number | null) {
   if (prev === null || prev === 0) return null
   const diff = curr - prev
   const sign = diff >= 0 ? '+' : ''
-  return { text: `${sign}${formatJpn(Math.abs(diff))} (${sign}${((diff / prev) * 100).toFixed(1)}%)`, positive: diff >= 0 }
+  return { text: `${sign}${formatYen(Math.abs(diff))} (${sign}${((diff / prev) * 100).toFixed(1)}%)`, positive: diff >= 0 }
 }
 
 export default async function AssetsPage() {
@@ -221,7 +205,7 @@ export default async function AssetsPage() {
               {/* 年間家賃収入 — 白背景・青文字 */}
               <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
                 <p className="text-xs text-blue-500 font-medium mb-1">年間家賃収入</p>
-                <p className="text-xl font-bold text-blue-600">{formatJpn(totalIncome)}</p>
+                <p className="text-xl font-bold text-blue-600">{formatYen(totalIncome)}</p>
                 {incDiff && (
                   <p className={`text-xs mt-1 ${incDiff.positive ? 'text-blue-400' : 'text-red-400'}`}>
                     前年比 {incDiff.text}
@@ -231,7 +215,7 @@ export default async function AssetsPage() {
               {/* 年間支出 — 白背景・赤文字 */}
               <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
                 <p className="text-xs text-red-500 font-medium mb-1">年間支出</p>
-                <p className="text-xl font-bold text-red-500">{formatJpn(totalExpense)}</p>
+                <p className="text-xl font-bold text-red-500">{formatYen(totalExpense)}</p>
                 {expDiff && (
                   <p className={`text-xs mt-1 ${expDiff.positive ? 'text-red-400' : 'text-green-500'}`}>
                     前年比 {expDiff.text}
@@ -283,7 +267,7 @@ export default async function AssetsPage() {
                   </div>
                   <div>
                     <p className="text-gray-400">合計取得価格</p>
-                    <p className="text-gray-700 font-medium mt-0.5">{formatJpn(totalAcqPrice)}</p>
+                    <p className="text-gray-700 font-medium mt-0.5">{formatYen(totalAcqPrice)}</p>
                   </div>
                 </div>
               )}
