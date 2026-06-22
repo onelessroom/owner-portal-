@@ -15,7 +15,7 @@ function formatJpn(n: number): string {
 }
 
 function pctStr(v: number) {
-  return v.toFixed(2) + '%'
+  return v.toFixed(1) + '%'
 }
 
 function diffLabel(curr: number, prev: number | null) {
@@ -131,6 +131,9 @@ export default async function AssetsPage() {
   const overallYield = propsWithPrice.length > 0 && totalAcqPrice > 0
     ? (totalIncome / totalAcqPrice) * 100
     : null
+  const netYield = propsWithPrice.length > 0 && totalAcqPrice > 0
+    ? (totalProfit / totalAcqPrice) * 100
+    : null
 
   // 月次チャートデータ
   const chartData: ChartMonth[] = months12.map(({ year, month }) => {
@@ -196,58 +199,76 @@ export default async function AssetsPage() {
           </div>
 
           <div className="px-5 py-5 space-y-4">
-            {/* 年間家賃収入 */}
-            <div>
-              <p className="text-sm text-gray-500 mb-0.5">年間家賃収入</p>
-              <p className="text-3xl font-bold text-blue-600">{formatJpn(totalIncome)}</p>
+            {/* 年間家賃収入 — 青背景・白文字 */}
+            <div className="bg-blue-600 rounded-xl px-4 py-3">
+              <p className="text-xs text-blue-100 font-medium mb-1">年間家賃収入</p>
+              <p className="text-3xl font-bold text-white">{formatJpn(totalIncome)}</p>
               {incDiff && (
-                <p className={`text-xs mt-1 ${incDiff.positive ? 'text-blue-500' : 'text-red-500'}`}>
+                <p className={`text-xs mt-1 ${incDiff.positive ? 'text-blue-200' : 'text-red-300'}`}>
                   前年比 {incDiff.text}
                 </p>
               )}
-              {!hasPrevData && <p className="text-xs text-gray-400 mt-1">前年データなし</p>}
+              {!hasPrevData && <p className="text-xs text-blue-200 mt-1">前年データなし</p>}
             </div>
 
             {/* 年間支出・収支 */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div className="bg-red-50 rounded-xl px-4 py-3">
+            <div className="grid grid-cols-2 gap-3">
+              {/* 年間支出 — 白背景・赤文字 */}
+              <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
                 <p className="text-xs text-red-500 font-medium mb-1">年間支出</p>
-                <p className="text-xl font-bold text-red-600">{formatJpn(totalExpense)}</p>
+                <p className="text-xl font-bold text-red-500">{formatJpn(totalExpense)}</p>
                 {expDiff && (
-                  <p className={`text-xs mt-1 ${expDiff.positive ? 'text-red-500' : 'text-green-500'}`}>
+                  <p className={`text-xs mt-1 ${expDiff.positive ? 'text-red-400' : 'text-green-500'}`}>
                     前年比 {expDiff.text}
                   </p>
                 )}
               </div>
-              <div className="bg-gray-50 rounded-xl px-4 py-3">
-                <p className="text-xs text-gray-500 font-medium mb-1">年間収支</p>
-                <p className={`text-xl font-bold ${totalProfit >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+              {/* 年間収支 — 白背景・青文字 */}
+              <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
+                <p className="text-xs text-blue-500 font-medium mb-1">年間収支</p>
+                <p className={`text-xl font-bold ${totalProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                   {totalProfit >= 0 ? '' : '− '}{formatJpn(Math.abs(totalProfit))}
                 </p>
               </div>
             </div>
 
             {/* 全体利回り */}
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-gray-100 pt-4 space-y-3">
+              {/* 表面利回り */}
               {overallYield !== null ? (
-                <>
+                <div>
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-gray-600 font-medium">全体の表面利回り</span>
                     <span className="text-2xl font-bold text-gray-900">{pctStr(overallYield)}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    取得価格登録済み {propsWithPrice.length}/{props.length} 件
-                    　合計取得価格 {formatJpn(totalAcqPrice)}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    年間家賃収入 ÷ 物件の購入価格で計算した、ざっくりの利回りです
-                  </p>
-                </>
+                  <p className="text-xs text-gray-400 mt-0.5">年間家賃 ÷ 物件価格</p>
+                </div>
               ) : (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">全体の表面利回り</span>
                   <span className="text-sm text-orange-500">取得価格未登録</span>
                 </div>
+              )}
+              {/* 実質利回り */}
+              {netYield !== null ? (
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-gray-600 font-medium">実質利回り</span>
+                    <span className="text-2xl font-bold text-blue-700">{pctStr(netYield)}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">(家賃 − 経費) ÷ 物件価格</p>
+                </div>
+              ) : overallYield !== null ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">実質利回り</span>
+                  <span className="text-sm text-gray-400">経費データなし</span>
+                </div>
+              ) : null}
+              {overallYield !== null && (
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  取得価格登録済み {propsWithPrice.length}/{props.length} 件
+                  　合計取得価格 {formatJpn(totalAcqPrice)}
+                </p>
               )}
             </div>
           </div>
