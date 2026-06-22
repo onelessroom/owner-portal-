@@ -7,11 +7,19 @@ import AssetsAccordion, { PropertyAsset } from '@/components/AssetsAccordion'
 
 function formatJpn(n: number): string {
   if (n === 0) return '0円'
-  const man = Math.floor(n / 10000)
-  const rem = n % 10000
-  if (man === 0) return `${rem.toLocaleString('ja-JP')}円`
-  if (rem === 0) return `${man}万円`
-  return `${man}万${rem.toLocaleString('ja-JP')}円`
+  const oku = Math.floor(n / 100_000_000)
+  const man = Math.floor((n % 100_000_000) / 10_000)
+  const rem = n % 10_000
+  let result = ''
+  if (oku > 0) result += `${oku}億`
+  if (man > 0) result += `${man}万`
+  if (rem > 0) result += `${rem.toLocaleString('ja-JP')}`
+  return result + '円'
+}
+
+function formatYen(n: number): string {
+  const prefix = n < 0 ? '−¥' : '¥'
+  return prefix + Math.abs(n).toLocaleString('ja-JP')
 }
 
 function pctStr(v: number) {
@@ -189,23 +197,23 @@ export default async function AssetsPage() {
 
         {/* ── 全体サマリー ── */}
         <section className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-400 tracking-wider mb-1">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <p className="text-sm font-bold text-gray-800 mb-0.5">
               直近12ヶ月の資産状況
             </p>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-600">
               {months12[0].year}年{months12[0].month}月 〜 {months12[11].year}年{months12[11].month}月
             </p>
           </div>
 
           <div className="px-5 py-5 space-y-4">
             {/* 年間収支 — 青背景・白文字 */}
-            <div className="bg-blue-600 rounded-xl px-4 py-3">
-              <p className="text-xs text-blue-100 font-medium mb-1">年間収支</p>
-              <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-white' : 'text-red-300'}`}>
-                {totalProfit >= 0 ? '' : '− '}{formatJpn(Math.abs(totalProfit))}
+            <div className="bg-blue-600 rounded-xl px-5 py-5">
+              <p className="text-sm text-blue-100 font-medium mb-2">年間収支</p>
+              <p className={`text-4xl font-bold tracking-tight ${totalProfit >= 0 ? 'text-white' : 'text-red-300'}`}>
+                {formatYen(totalProfit)}
               </p>
-              {!hasPrevData && <p className="text-xs text-blue-200 mt-1">前年データなし</p>}
+              {!hasPrevData && <p className="text-xs text-blue-200 mt-2">前年データなし</p>}
             </div>
 
             {/* 年間家賃収入・年間支出 */}
@@ -233,42 +241,51 @@ export default async function AssetsPage() {
             </div>
 
             {/* 全体利回り */}
-            <div className="border-t border-gray-100 pt-4 space-y-3">
-              {/* 表面利回り */}
+            <div className="border-t border-gray-100 pt-4 space-y-4">
+              {/* 表面利回り（参考値） */}
               {overallYield !== null ? (
-                <div>
+                <div className="py-1">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-sm text-gray-600 font-medium">全体の表面利回り</span>
+                    <span className="text-sm text-gray-500">全体の表面利回り</span>
                     <span className="text-2xl font-bold text-gray-900">{pctStr(overallYield)}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">年間家賃 ÷ 物件価格</p>
+                  <p className="text-xs text-gray-400 mt-1">年間家賃 ÷ 物件価格</p>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">全体の表面利回り</span>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-sm text-gray-500">全体の表面利回り</span>
                   <span className="text-sm text-orange-500">取得価格未登録</span>
                 </div>
               )}
               {/* 実質利回り */}
               {netYield !== null ? (
-                <div>
+                <div className="py-1">
                   <div className="flex items-baseline justify-between">
                     <span className="text-sm text-gray-600 font-medium">実質利回り</span>
                     <span className="text-2xl font-bold text-blue-700">{pctStr(netYield)}</span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5">(家賃 − 経費) ÷ 物件価格</p>
+                  <p className="text-xs text-gray-400 mt-1">(家賃 − 経費) ÷ 物件価格</p>
                 </div>
               ) : overallYield !== null ? (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between py-1">
                   <span className="text-sm text-gray-600">実質利回り</span>
                   <span className="text-sm text-gray-400">経費データなし</span>
                 </div>
               ) : null}
+              {/* 取得価格エリア */}
               {overallYield !== null && (
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  取得価格登録済み {propsWithPrice.length}/{props.length} 件
-                  　合計取得価格 {formatJpn(totalAcqPrice)}
-                </p>
+                <div className="flex gap-6 pt-1 text-xs">
+                  <div>
+                    <p className="text-gray-400">取得価格登録済み</p>
+                    <p className="text-gray-700 font-medium mt-0.5">
+                      {propsWithPrice.length} / {props.length} 件
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-400">合計取得価格</p>
+                    <p className="text-gray-700 font-medium mt-0.5">{formatJpn(totalAcqPrice)}</p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
