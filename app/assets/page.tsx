@@ -199,20 +199,27 @@ export default async function AssetsPage() {
           </div>
 
           <div className="px-5 py-5 space-y-4">
-            {/* 年間家賃収入 — 青背景・白文字 */}
+            {/* 年間収支 — 青背景・白文字 */}
             <div className="bg-blue-600 rounded-xl px-4 py-3">
-              <p className="text-xs text-blue-100 font-medium mb-1">年間家賃収入</p>
-              <p className="text-3xl font-bold text-white">{formatJpn(totalIncome)}</p>
-              {incDiff && (
-                <p className={`text-xs mt-1 ${incDiff.positive ? 'text-blue-200' : 'text-red-300'}`}>
-                  前年比 {incDiff.text}
-                </p>
-              )}
+              <p className="text-xs text-blue-100 font-medium mb-1">年間収支</p>
+              <p className={`text-3xl font-bold ${totalProfit >= 0 ? 'text-white' : 'text-red-300'}`}>
+                {totalProfit >= 0 ? '' : '− '}{formatJpn(Math.abs(totalProfit))}
+              </p>
               {!hasPrevData && <p className="text-xs text-blue-200 mt-1">前年データなし</p>}
             </div>
 
-            {/* 年間支出・収支 */}
+            {/* 年間家賃収入・年間支出 */}
             <div className="grid grid-cols-2 gap-3">
+              {/* 年間家賃収入 — 白背景・青文字 */}
+              <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
+                <p className="text-xs text-blue-500 font-medium mb-1">年間家賃収入</p>
+                <p className="text-xl font-bold text-blue-600">{formatJpn(totalIncome)}</p>
+                {incDiff && (
+                  <p className={`text-xs mt-1 ${incDiff.positive ? 'text-blue-400' : 'text-red-400'}`}>
+                    前年比 {incDiff.text}
+                  </p>
+                )}
+              </div>
               {/* 年間支出 — 白背景・赤文字 */}
               <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
                 <p className="text-xs text-red-500 font-medium mb-1">年間支出</p>
@@ -222,13 +229,6 @@ export default async function AssetsPage() {
                     前年比 {expDiff.text}
                   </p>
                 )}
-              </div>
-              {/* 年間収支 — 白背景・青文字 */}
-              <div className="bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-sm">
-                <p className="text-xs text-blue-500 font-medium mb-1">年間収支</p>
-                <p className={`text-xl font-bold ${totalProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                  {totalProfit >= 0 ? '' : '− '}{formatJpn(Math.abs(totalProfit))}
-                </p>
               </div>
             </div>
 
